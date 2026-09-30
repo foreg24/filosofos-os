@@ -20,16 +20,20 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // En build se genera un sitio 100 % estático en /out (Cloudflare Pages). Las cabeceras de
+  // seguridad de producción viven en public/_headers, porque la exportación estática no usa headers().
+  output: isDev ? undefined : "export",
   devIndicators: false,
   // No se anuncia la tecnología del servidor (cabecera x-powered-by).
   poweredByHeader: false,
   // Nunca se publican los mapas de código fuente: en el navegador solo llega el código compilado.
   productionBrowserSourceMaps: false,
   images: {
-    formats: ["image/avif", "image/webp"],
+    // Sin servidor no hay optimizador de imágenes: se sirven tal cual.
+    unoptimized: true,
   },
-  async headers() {
-    return [
+  // Solo en desarrollo (next dev); en producción las aplica Cloudflare desde public/_headers.
+  ...(isDev && { headers: async () => [
       {
         source: "/(.*)",
         headers: [
@@ -44,8 +48,7 @@ const nextConfig: NextConfig = {
           { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
         ],
       },
-    ];
-  },
+    ] }),
 };
 
 export default nextConfig;
