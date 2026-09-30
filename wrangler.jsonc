@@ -1,0 +1,11 @@
+// Despliegue en Cloudflare Workers como sitio estático: `npm run build` genera /out
+// y `npx wrangler deploy` sube esa carpeta (incluye _headers). No hace falta servidor.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "filosofos-os",
+  "compatibility_date": "2026-09-26",
+  "assets": {
+    "directory": "./out",
+    "not_found_handling": "404-page"
+  }
+}

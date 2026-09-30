@@ -36,4 +36,8 @@ cabeceras de seguridad). Para publicarlo:
    - La versión de Node se toma de `.node-version` (22).
 4. **Save and Deploy**. Cada `git push` vuelve a desplegar el sitio.
 
-Alternativa sin Git: `npm run build` y luego `npx wrangler pages deploy out`.
+Si el proyecto se creó como **Worker** (Workers & Pages → Create → Worker → importar repositorio),
+también funciona: build command `npm run build` y deploy command `npx wrangler deploy`. El archivo
+`wrangler.jsonc` le indica que suba la carpeta `out` como sitio estático.
+
+Alternativa sin Git: `npm run build` y luego `npx wrangler deploy`.
