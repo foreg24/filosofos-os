@@ -1,8 +1,7 @@
 /**
- * Tabla de procesos de la máquina emulada, compartida por todas las terminales de la página.
+ * Tabla de procesos de la máquina, compartida por todas las terminales de la página.
  * Modela lo que pide el laboratorio: estados (R, S, T, Z…), señales, trabajos de bash,
  * padres e hijos, huérfanos adoptados por init y zombis que nadie recoge.
- * No ejecuta nada real: son datos en memoria con temporizadores.
  */
 import { debianSystem as S } from "../debianSystem";
 import { type BaseProc, baseProcesses } from "./baseProcesses";
@@ -40,6 +39,8 @@ export interface Proc {
   pending?: Signal;
   /** Primer plano fijo de otra terminal (la sesión gráfica en tty2). */
   pinnedForeground?: boolean;
+  /** Función del kernel donde duerme (columna WCHAN); si falta, se deduce del estado. */
+  wchan?: string;
 }
 
 export interface Job {

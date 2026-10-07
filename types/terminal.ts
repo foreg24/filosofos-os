@@ -1,4 +1,4 @@
-/** Tipos públicos de la terminal Debian emulada (compartidos entre UI y lógica). */
+/** Tipos públicos de la terminal Debian (compartidos entre UI y lógica). */
 
 export type Tone = "default" | "muted" | "info" | "dir" | "strong" | "prompt" | "accent" | "match" | "error" | "warn" | "alert";
 
@@ -34,6 +34,8 @@ export interface StreamStep {
   delay: number;
   effect?: () => void;
   lines?: OutputLine[];
+  /** Líneas calculadas en el momento del paso (pantallas en vivo como `watch`). */
+  render?: () => OutputLine[];
   clear?: boolean;
 }
 

@@ -1,5 +1,5 @@
 /**
- * Salidas de la máquina Debian emulada. Todas derivan de `debianSystem`:
+ * Salidas de la máquina Debian. Todas derivan de `debianSystem`:
  * ningún valor (usuario, host, kernel, memoria…) se escribe a mano en dos sitios.
  */
 import { bootId, debianSystem as S, machineId, prettyName } from "./debianSystem";

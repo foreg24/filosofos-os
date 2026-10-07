@@ -1,4 +1,4 @@
-/** Autocompletado con Tab: comandos, rutas del sistema ficticio y opciones conocidas. */
+/** Autocompletado con Tab: comandos, rutas del sistema de archivos y opciones conocidas. */
 import { MODES } from "@/lib/constants";
 import { COMMAND_NAMES, LAB_SECTIONS } from "./commandRegistry";
 import { PALETTE } from "./terminalTheme";
@@ -16,7 +16,9 @@ const OPTIONS: Record<string, string[]> = {
   free: ["-h", "-m"],
   hostname: ["-I"],
   strace: ["ls"],
-  simulation: ["mode", "pause", "start", "step"],
+  simulation: ["mode", "pause", "resume", "speed", "start", "step", "stop"],
+  log: ["10", "30"],
+  top: ["-p"],
   kill: ["-9", "-CONT", "-STOP", "-TERM", "-l"],
   ps: ["-ef", "-f", "-p", "aux"],
   pstree: ["-p"],

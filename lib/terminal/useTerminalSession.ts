@@ -6,13 +6,16 @@ import type { StreamStep } from "@/types/terminal";
 import { complete } from "./autocomplete";
 import { execute } from "./commandRegistry";
 import { lsColumns } from "./debianOutputs";
+import { debianSystem } from "./debianSystem";
 import { foregroundDeathMessage } from "./processCommands";
 import { machine } from "./processes/machine";
+import { registerSimulation } from "./processes/tableProcesses";
 import type { Signal } from "./processes/signals";
 import { type InitialScreen, bannerLines, createTerminalState, terminalReducer } from "./terminalState";
 import { type SimulationBridge, line } from "./terminalTypes";
 
-const SIMULATED_SUDO = "This interactive Debian environment is simulated for demonstration.";
+/** El usuario no está en sudoers: la contraseña nunca se valida ni se guarda. */
+const NOT_SUDOER = `${debianSystem.username} is not in the sudoers file.`;
 
 /** Toda la lógica de la sesión (entrada, historial, salidas en curso) separada de la UI. */
 export function useTerminalSession(sim: SimulationController, reduced: boolean, tty: string, screen: InitialScreen = "banner") {
@@ -31,6 +34,8 @@ export function useTerminalSession(sim: SimulationController, reduced: boolean, 
   useEffect(() => {
     simRef.current = sim;
   });
+  // Los procesos de la mesa (ps, pstree, /proc) leen el mismo motor que el panel.
+  useEffect(() => registerSimulation({ state: () => simRef.current.state, playing: () => simRef.current.playing }), []);
   useEffect(() => {
     sessionStart.current = Date.now();
     const pending = timers.current;
@@ -46,6 +51,8 @@ export function useTerminalSession(sim: SimulationController, reduced: boolean, 
       pause: () => simRef.current.pause(),
       step: () => simRef.current.stepOnce(),
       reset: (mode) => simRef.current.reset(mode),
+      speed: () => simRef.current.speed,
+      setSpeed: (x) => simRef.current.setSpeed(x),
     }),
     [],
   );
@@ -70,7 +77,8 @@ export function useTerminalSession(sim: SimulationController, reduced: boolean, 
           window.setTimeout(() => {
             step.effect?.();
             if (step.clear) dispatch({ type: "clear" });
-            if (step.lines?.length) dispatch({ type: "append", lines: step.lines });
+            const shown = step.render ? step.render() : step.lines;
+            if (shown?.length) dispatch({ type: "append", lines: shown });
             if (i === steps.length - 1) dispatch({ type: "mode", mode: "input" });
           }, elapsed),
         );
@@ -155,7 +163,7 @@ export function useTerminalSession(sim: SimulationController, reduced: boolean, 
     if (state.mode === "busy") return;
     if (state.mode === "password") {
       // La contraseña nunca llega a guardarse: solo se cierra la petición.
-      dispatch({ type: "append", lines: [line(state.passwordPrompt ?? ""), line(SIMULATED_SUDO, "muted")] });
+      dispatch({ type: "append", lines: [line(state.passwordPrompt ?? ""), line(NOT_SUDOER)] });
       dispatch({ type: "mode", mode: "input" });
       return;
     }

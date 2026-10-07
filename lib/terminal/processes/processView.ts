@@ -4,6 +4,7 @@
  */
 import { debianSystem as S } from "../debianSystem";
 import { type Machine, type Proc, machine } from "./machine";
+import { tableProcesses } from "./tableProcesses";
 
 export interface Transient {
   pid: number;
@@ -14,15 +15,31 @@ export interface Transient {
 export interface ProcView extends Proc {
   /** Columna STAT completa (estado + modificadores + "+"). */
   stat: string;
+  /** Columna WCHAN: función del kernel donde duerme ("-" si está en ejecución). */
+  wchan: string;
 }
 
 export const MEM_TOTAL_KIB = Math.round(S.mem.totalMiB * 1024);
-const SIMULATION_PID = 2048;
 
 export interface ViewOptions {
   tty: string;
   transients?: Transient[];
-  simRunning?: boolean;
+}
+
+/** WCHAN de un proceso: el suyo propio o el típico de su estado y programa. */
+export function wchanOf(p: Proc): string {
+  if (p.wchan) return p.wchan;
+  if (p.state === "R" || p.state === "Z") return "-";
+  if (p.state === "T") return "do_signal_stop";
+  if (p.kernel) return p.state === "I" ? "worker_thread" : "smpboot_thread_fn";
+  if (p.comm === "bash") return "do_select";
+  if (p.kind === "sleep" || p.kind === "zombie") return "hrtimer_nanosleep";
+  return "do_epoll_wait";
+}
+
+/** Todos los procesos vivos: los de la máquina y los de la mesa. */
+export function allProcesses(m: Machine = machine()): Proc[] {
+  return [...m.list(), ...tableProcesses(m.bootAt)];
 }
 
 /** Reserva PIDs para el comando y los demás de su tubería (aparecen en su propia salida). */
@@ -31,25 +48,11 @@ export function reserveTransients(names: { comm: string; cmd: string }[]): Trans
   return names.map((n) => ({ ...n, pid: m.allocPid() }));
 }
 
-export function viewProcesses({ tty, transients = [], simRunning = false }: ViewOptions, m: Machine = machine()): ProcView[] {
+export function viewProcesses({ tty, transients = [] }: ViewOptions, m: Machine = machine()): ProcView[] {
   const shell = m.shell(tty);
   const now = Date.now();
-  const procs: Proc[] = [...m.list()];
+  const procs: Proc[] = allProcesses(m);
 
-  if (simRunning && !m.get(SIMULATION_PID)) {
-    procs.push({
-      ...template(m, now),
-      pid: SIMULATION_PID,
-      ppid: 1024,
-      comm: "dining-philos",
-      cmd: "node dining-philos.js --philosophers 5",
-      state: "R",
-      cpu: 1.2,
-      vsz: 182044,
-      rss: 23552,
-      started: m.get(1024)?.started ?? 60_000,
-    });
-  }
   transients.forEach((t, i) => procs.push({ ...template(m, now), pid: t.pid, ppid: shell, comm: t.comm, cmd: t.cmd, tty, state: i === 0 ? "R" : "S" }));
 
   // Primer plano: en la terminal que ejecuta, el comando; en las demás, su trabajo o su shell.
@@ -58,7 +61,7 @@ export function viewProcesses({ tty, transients = [], simRunning = false }: View
 
   return procs
     .sort((a, b) => a.pid - b.pid)
-    .map((p) => ({ ...p, stat: `${p.state}${p.flags}${fg.has(p.pid) || p.pinnedForeground ? "+" : ""}` }));
+    .map((p) => ({ ...p, stat: `${p.state}${p.flags}${fg.has(p.pid) || p.pinnedForeground ? "+" : ""}`, wchan: wchanOf(p) }));
 }
 
 function template(m: Machine, now: number): Proc {

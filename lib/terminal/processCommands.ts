@@ -1,20 +1,31 @@
 /**
  * Comandos de procesos del laboratorio: ps, pstree, kill, jobs, fg, bg, sleep, bash, exit,
- * pgrep, pidof. Operan sobre la tabla de procesos emulada (lib/terminal/processes).
+ * pgrep, pidof. Operan sobre la tabla de procesos (lib/terminal/processes).
  */
 import { splitFlags } from "./commandParser";
 import { machine } from "./processes/machine";
 import { psAux, psColumnNames, psCustom, psDefault, psFull } from "./processes/psFormat";
 import { pstree } from "./processes/pstree";
 import { type ProcView, viewProcesses } from "./processes/processView";
-import { SIGNAL_MESSAGES, parseSignal, signalTable } from "./processes/signals";
+import { SIGNAL_MESSAGES, type Signal, parseSignal, signalTable as signalList } from "./processes/signals";
+import { isTablePid, tableActive } from "./processes/tableProcesses";
 import { bannerLines } from "./terminalState";
 import { type CommandContext, type CommandHandler, line, lines, out } from "./terminalTypes";
 
 export { psColumnNames };
 
 const err = (text: string) => out(line(text, "error"));
-const view = (ctx: CommandContext) => viewProcesses({ tty: ctx.tty, transients: ctx.transients, simRunning: ctx.sim.isPlaying() });
+const view = (ctx: CommandContext) => viewProcesses({ tty: ctx.tty, transients: ctx.transients });
+
+/** Señales a los procesos de la mesa: actúan sobre la simulación entera, como en filosofos.py. */
+function signalTable(signal: Signal, ctx: CommandContext) {
+  const { status, mode } = ctx.sim.getState();
+  if (signal === "STOP" || signal === "TSTP") ctx.sim.pause();
+  else if (signal === "CONT") {
+    if (status === "running" || status === "resolved") ctx.sim.play();
+  } else if (FATAL_SIGNALS.includes(signal)) ctx.sim.reset(mode);
+}
+const FATAL_SIGNALS: Signal[] = ["HUP", "INT", "QUIT", "KILL", "TERM"];
 
 /* ------------------------------------------------------------------ ps -- */
 
@@ -76,7 +87,7 @@ const KILL_USAGE = "kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | 
 const kill: CommandHandler = (args, ctx) => {
   const m = machine();
   if (!args.length) return err(KILL_USAGE);
-  if (args[0] === "-l" || args[0] === "-L") return out(...signalTable().map((t) => line(t)));
+  if (args[0] === "-l" || args[0] === "-L") return out(...signalList().map((t) => line(t)));
 
   let signal = parseSignal("TERM");
   let targets = args;
@@ -106,8 +117,12 @@ const kill: CommandHandler = (args, ctx) => {
       result.push(line(`bash: kill: ${target}: arguments must be process or job IDs`, "error"));
       continue;
     }
+    if (isTablePid(pid) && tableActive()) {
+      signalTable(signal, ctx);
+      continue;
+    }
     const error = m.signal(pid, signal);
-    if (error === "protected") result.push(line(`(emulación) PID ${pid} sostiene el escritorio de esta demostración: no se detiene.`, "muted"));
+    if (error === "protected") result.push(line(`bash: kill: (${pid}) - Operation not permitted`, "error"));
     else if (error) result.push(line(`bash: kill: ${error}`, "error"));
   }
   return { kind: "output", lines: result };
@@ -189,7 +204,7 @@ export function runZombie(ctx: CommandContext, command: string) {
 /* ---------------------------------------------------------- shells ----- */
 
 const bash: CommandHandler = (args, ctx) => {
-  if (args.length) return err(`bash: ${args[0]}: this emulation only opens interactive shells (use: bash)`);
+  if (args.length) return err(`bash: ${args[0]}: No such file or directory`);
   machine().pushShell(ctx.tty);
   return out();
 };

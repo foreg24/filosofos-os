@@ -13,6 +13,8 @@ export interface SimulationBridge {
   pause: () => void;
   step: () => void;
   reset: (mode?: SimulationMode) => void;
+  speed: () => number;
+  setSpeed: (speed: number) => void;
 }
 
 export interface CommandContext {

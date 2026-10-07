@@ -98,7 +98,7 @@ const wc: Filter = (input, args) => {
 const awk: Filter = (input, args) => {
   const program = args.find((a) => !a.startsWith("-")) ?? "";
   const m = program.match(/^\s*\{\s*print\s*(.*?)\s*;?\s*\}\s*$/);
-  if (!m) return { error: "awk: this emulation only supports programs like '{print $1, $2}'" };
+  if (!m) return { error: `awk: cmd. line:1: ${program}\nawk: cmd. line:1: syntax error` };
   const items = m[1] ? m[1].split(/\s*,\s*/) : ["$0"];
   if (!items.every((it) => /^\$(\d+|NF)$/.test(it))) return { error: `awk: cmd. line:1: ${program}\nawk: cmd. line:1: syntax error` };
   return {

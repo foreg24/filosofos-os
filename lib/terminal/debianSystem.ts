@@ -1,5 +1,5 @@
 /**
- * Configuración única de la máquina Debian emulada.
+ * Configuración única de la máquina Debian.
  * Todas las salidas se calculan a partir de aquí: cambiar un valor aquí lo cambia en todos los comandos.
  */
 export const debianSystem = {

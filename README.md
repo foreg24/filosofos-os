@@ -2,7 +2,7 @@
 
 Micrositio interactivo para la exposición de Sistemas Operativos (Grupo 06): el problema de los
 filósofos comensales, las condiciones del deadlock, una simulación en tiempo real y una terminal
-Debian emulada con el laboratorio de procesos.
+Debian con el laboratorio de procesos.
 
 ## Ejecutar
 
@@ -38,7 +38,7 @@ real, así que el bloqueo se puede comprobar con el sistema:
 ```bash
 deadlock                                     # provoca el deadlock con 5 procesos reales
 ps -o pid,stat,wchan:22,comm -p $FILOSOFOS   # los 5 procesos dormidos (S) en el kernel
-pstree -p $PPID                              # la consola y sus 5 hijos filosofo-P0 … P4
+pstree -p $MESA                              # la consola y sus 5 hijos filosofo-P0 … P4
 reset
 simulation mode monitor                      # normal, deadlock, ordered, limited, asymmetric, monitor
 simulation start

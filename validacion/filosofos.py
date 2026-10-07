@@ -47,7 +47,7 @@ MODES = {
     "ordered": "total order of resources",
     "limited": "N-1 semaphore",
     "asymmetric": "asymmetric acquisition",
-    "monitor": "both forks or none (monitor)",
+    "monitor": "both forks or none, monitor",
 }
 KERNEL_STATES = {"R": "running", "S": "sleeping", "D": "disk sleep", "T": "stopped", "t": "traced", "Z": "zombie", "I": "idle"}
 
@@ -261,6 +261,7 @@ class Table:
         self.started = time.time()
         self.events.clear()
         os.environ["FILOSOFOS"] = ",".join(str(pid) for pid in self.pids())
+        os.environ["MESA"] = str(os.getpid())
 
     def stop(self):
         for p in self.procs:
@@ -279,6 +280,7 @@ class Table:
         self.status, self.paused, self.cycle = "idle", False, None
         self.sh = Shared()
         os.environ.pop("FILOSOFOS", None)
+        os.environ.pop("MESA", None)
 
     def signal_all(self, sig):
         for pid in self.pids():
@@ -518,7 +520,7 @@ def cmd_deadlock(_args):
             print(f"  {pid:<8}{letter:<6}{wchan or '—':<24}filosofo-P{i}")
         print(f"\n{C.dim}All 5 processes hold one fork and wait for the next. None can proceed.")
         print("Siguen vivos, pero dormidos (S) en el kernel esperando un semáforo que nadie va a liberar.")
-        print("Compruébalo:  ps -o pid,stat,wchan:22,comm -p $FILOSOFOS    o    pstree -p $PPID")
+        print("Compruébalo:  ps -o pid,stat,wchan:22,comm -p $FILOSOFOS    o    pstree -p $MESA")
         print(f"Run 'reset' to restart the simulation.{C.reset}")
     finally:
         table.quiet = False
@@ -575,7 +577,7 @@ def cmd_help(_args):
         ]),
         ("Para comprobarlo con el sistema", [
             ("ps -o pid,stat,wchan:22,comm -p $FILOSOFOS", "estado real de los 5 procesos"),
-            ("pstree -p $PPID", "el árbol: esta consola y sus 5 hijos"),
+            ("pstree -p $MESA", "el árbol: esta consola y sus 5 hijos"),
             ("top -p $FILOSOFOS", "los 5 procesos en top"),
             ("cat /proc/<PID>/status", "el PCB de un filósofo"),
             ("kill -9 <PID>", "matar a un filósofo"),

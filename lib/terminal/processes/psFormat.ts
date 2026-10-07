@@ -54,15 +54,27 @@ const COLUMNS: Record<string, [string, number, (p: ProcView) => string]> = {
   vsz: ["VSZ", 6, (p) => String(p.vsz)],
   rss: ["RSS", 5, (p) => String(p.rss)],
   time: ["TIME", 8, (p) => timeLong(cpuSeconds(machine(), p))],
+  wchan: ["WCHAN", -6, (p) => p.wchan],
 };
 
 export const psColumnNames = Object.keys(COLUMNS);
 
+/** "wchan:22" → la columna wchan con 22 caracteres de ancho (mismo alineado). */
+function column(spec: string): (typeof COLUMNS)[string] | undefined {
+  const [name, width] = spec.toLowerCase().split(":");
+  const col = COLUMNS[name];
+  if (!col || width === undefined) return col;
+  const w = Number(width);
+  if (!Number.isInteger(w) || w <= 0) return undefined;
+  return [col[0], col[1] < 0 ? -w : w, col[2]];
+}
+
 export function psCustom(procs: ProcView[], fields: string[]): string[] | { error: string } {
-  const cols = fields.map((f) => COLUMNS[f.toLowerCase()]);
-  const bad = fields.find((f, i) => !cols[i]);
+  const found = fields.map(column);
+  const bad = fields.find((f, i) => !found[i]);
   if (bad) return { error: `error: unknown user-defined format specifier "${bad}"` };
-  const cell = (col: (typeof cols)[number], value: string, last: boolean) => {
+  const cols = found as (typeof COLUMNS)[string][];
+  const cell = (col: (typeof COLUMNS)[string], value: string, last: boolean) => {
     const width = col[1];
     return width === 0 || last ? value : width < 0 ? value.padEnd(-width) : value.padStart(width);
   };

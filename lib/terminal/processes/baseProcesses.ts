@@ -1,5 +1,5 @@
 /**
- * Procesos con los que arranca la máquina Debian emulada: GNOME en VirtualBox, dos pestañas de
+ * Procesos con los que arranca la máquina Debian: GNOME en VirtualBox, dos pestañas de
  * gnome-terminal (pts/0 y pts/1) e hilos del kernel. 187 procesos: con el propio ps o top, 188
  * (lo que ya muestra `top`). Coherente con debianSystem (usuario, memoria, VirtualBox).
  */
@@ -24,7 +24,7 @@ export interface BaseProc {
   comm: string;
   cmd: string;
   tty?: string;
-  /** Sostiene el escritorio de la demo: la emulación no lo detiene. */
+  /** Sostiene el escritorio: kill responde «Operation not permitted». */
   protected?: boolean;
   kernel?: boolean;
 }

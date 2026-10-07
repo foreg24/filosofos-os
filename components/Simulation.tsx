@@ -183,8 +183,8 @@ export function Simulation() {
           <div className="mb-10 text-center">
             <p className="label text-ink-3">System terminal</p>
             <p className="mx-auto mt-4 max-w-[34rem] text-[15px] leading-relaxed text-ink-2">
-              La máquina Debian que ejecuta esta demostración. Los comandos de los filósofos controlan el mismo motor que
-              el panel de arriba.
+              La máquina Debian donde corren los filósofos. Sus comandos controlan los mismos procesos que el panel de
+              arriba.
             </p>
           </div>
           <DebianTerminal tty="pts/1" />

@@ -12,6 +12,7 @@ import { FILTERS, filterCommandLine } from "./pipeline";
 import { processCommands, runZombie } from "./processCommands";
 import { machine } from "./processes/machine";
 import { reserveTransients } from "./processes/processView";
+import { MESA_PID, PHILOSOPHER_PIDS, tableActive } from "./processes/tableProcesses";
 import { systemCommands } from "./systemCommands";
 import { theme } from "./themeCommand";
 import { type CommandContext, type CommandHandler, type SessionContext, line, out } from "./terminalTypes";
@@ -27,7 +28,22 @@ const HELP_GROUPS: [string, string[]][] = [
   ],
   ["Filesystem", ["ls", "pwd", "cd", "clear", "history"]],
   ["Terminal", ["theme", "theme <color>   (o clic en la paleta de neofetch)", "theme reset"]],
-  ["Dining Philosophers", ["philosophers", "forks", "simulation", "deadlock", "reset"]],
+  [
+    "Dining Philosophers",
+    [
+      "philosophers",
+      "forks",
+      "simulation",
+      "simulation mode <normal|deadlock|ordered|limited|asymmetric|monitor>",
+      "simulation start · pause · resume · stop",
+      "deadlock",
+      "watch",
+      "log [n]",
+      "reset",
+      "ps -o pid,stat,wchan:22,comm -p $FILOSOFOS",
+      "pstree -p $MESA",
+    ],
+  ],
 ];
 
 const help: CommandHandler = () =>
@@ -81,6 +97,8 @@ function environment(ctx: SessionContext, shell: number): Env {
     LANG: "en_US.UTF-8",
     TERM: "xterm-256color",
     UID: "1000",
+    // Las exporta filosofos.py mientras sus procesos están vivos.
+    ...(tableActive() ? { FILOSOFOS: PHILOSOPHER_PIDS.join(","), MESA: String(MESA_PID) } : {}),
   };
 }
 
@@ -112,15 +130,16 @@ function runLine(parsed: ParsedLine, ctx: CommandContext): CommandResult {
   else result = handler(first.args, ctx, first);
   if (!filters.length) return result;
 
-  if (result.kind !== "output") return out(line(`bash: ${first.name}: this output cannot be piped in this emulation`, "error"));
+  // Un programa que no produce texto de una vez (sleep, watch…) se ejecuta igual; la tubería queda vacía.
+  if (result.kind !== "output") return result;
   let text = result.lines.map(plain);
   let lines: OutputLine[] = result.lines;
   for (const f of filters) {
     const filter = FILTERS[f.name];
     if (!filter) {
-      return REGISTRY.has(f.name)
-        ? out(line(`bash: ${f.name}: does not read from a pipe in this emulation (filters: grep, head, tail, sort, uniq, wc, awk)`, "error"))
-        : notFound(f.name);
+      // Un comando que no lee de la entrada estándar la ignora (como `ps | ls`): su salida es la final.
+      const other = REGISTRY.get(f.name);
+      return other ? other(f.args, ctx, f) : notFound(f.name);
     }
     const r = filter(text, f.args);
     if ("error" in r) return out(...r.error.split("\n").map((t) => line(t, "error")));
@@ -141,7 +160,7 @@ export function execute(raw: string, session: SessionContext): CommandResult {
     lastStatus.set(shell, 2);
     if (parsed.reason === "quote") return out(line("bash: unexpected EOF while looking for matching quote", "error"));
     if (parsed.reason === "pipe") return out(line(`bash: syntax error near unexpected token \`${parsed.token ?? "|"}'`, "error"));
-    return out(line(`bash: '${parsed.token}' is not available in this emulated environment (only | and a trailing & are supported)`, "error"));
+    return out(line(`bash: syntax error near unexpected token \`${parsed.token}'`, "error"));
   }
 
   const { pipeline, background } = parsed.line;

@@ -39,7 +39,7 @@ function busiest(procs: ProcView[], self: number, n: number): ProcView[] {
 }
 
 const instantCpu = (p: ProcView, self: number) => (p.pid === self ? 0.3 : p.cpu);
-const tone = (p: ProcView) => (p.comm === "dining-philos" ? "info" : p.state === "Z" ? "error" : undefined);
+const tone = (p: ProcView) => (p.comm.startsWith("filosofo-") || p.comm === "mesa-filosofos" ? "info" : p.state === "Z" ? "error" : undefined);
 
 export function top({ now, sessionStart, procs, self }: ProcessSnapshot): OutputLine[] {
   const up = uptime(now, sessionStart);
@@ -108,6 +108,5 @@ export function htop({ now, sessionStart, procs, self }: ProcessSnapshot): Outpu
     ),
     line(""),
     line("F1Help  F2Setup  F3Search  F4Filter  F5Tree  F6SortBy  F7Nice-  F8Nice+  F9Kill  F10Quit", "muted"),
-    line("Static view: htop is interactive on a real system. This emulation renders one frame.", "muted"),
   ];
 }

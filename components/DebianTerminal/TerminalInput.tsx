@@ -104,7 +104,7 @@ export const TerminalInput = forwardRef<HTMLInputElement, TerminalInputProps>(fu
         onSelect={syncCaret}
         onFocus={() => onFocusChange(true)}
         onBlur={() => onFocusChange(false)}
-        aria-label={secret ? "Contraseña simulada: no se almacena" : "Comando de la terminal Debian emulada"}
+        aria-label={secret ? "Contraseña" : "Comando de la terminal Debian"}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"

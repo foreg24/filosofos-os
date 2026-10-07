@@ -25,8 +25,7 @@ interface DebianTerminalProps {
 }
 
 /**
- * Terminal Debian emulada. Ningún comando llega a un sistema real:
- * todo pasa por el registro explícito de lib/terminal.
+ * Terminal Debian: cada comando pasa por el registro explícito de lib/terminal.
  */
 export function DebianTerminal({ className = "", style, tty = "pts/0", variant = "default", screen = "banner" }: DebianTerminalProps) {
   const sim = useDemoSimulation();
@@ -56,7 +55,7 @@ export function DebianTerminal({ className = "", style, tty = "pts/0", variant =
 
   return (
     <div className={className} style={style}>
-      <figure className={`term ${immersive ? "is-immersive" : ""}`} style={themeStyle} aria-label="Terminal Debian emulada. Escribe help para ver los comandos.">
+      <figure className={`term ${immersive ? "is-immersive" : ""}`} style={themeStyle} aria-label="Terminal Debian. Escribe help para ver los comandos.">
         <TerminalHeader cwd={state.cwd} />
         <TerminalViewport
           ref={viewport}
@@ -110,8 +109,7 @@ export function DebianTerminal({ className = "", style, tty = "pts/0", variant =
             ))}
           </p>
           <p className="max-w-[26rem] text-[12px] leading-relaxed text-ink-3 md:text-right">
-            Emulación controlada: ningún comando se ejecuta en un sistema real. Tab completa · ↑ ↓ historial · Ctrl+L limpia ·
-            Ctrl+C interrumpe · Esc sale.
+            Tab completa · ↑ ↓ historial · Ctrl+L limpia · Ctrl+C interrumpe · Esc sale.
           </p>
         </div>
       )}

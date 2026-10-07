@@ -1,11 +1,12 @@
 /**
- * Sistema de archivos ficticio y mínimo: solo lo necesario para la demostración.
+ * Sistema de archivos de la máquina: los directorios y archivos que usa la exposición.
  * No existe ninguna relación con el sistema de archivos real del servidor ni del usuario.
  */
 import { interrupts, osRelease } from "./debianOutputs";
 import { HOME, debianSystem as S } from "./debianSystem";
-import { machine } from "./processes/machine";
+import type { Proc } from "./processes/machine";
 import { procStatus } from "./processes/procStatus";
+import { allProcesses, wchanOf } from "./processes/processView";
 
 type Children = Record<string, VNode>;
 
@@ -76,11 +77,16 @@ int main(void) {
 /** /proc/<PID>: status, comm y cmdline de cada proceso vivo (el PCB que Linux expone). */
 function procChildren(): Children {
   const children: Children = { interrupts: file(interrupts) };
-  for (const p of machine().list()) {
+  const live = (p: Proc) => allProcesses().find((q) => q.pid === p.pid) ?? p;
+  for (const p of allProcesses()) {
     children[String(p.pid)] = dir({
-      status: file(() => procStatus(machine().get(p.pid) ?? p)),
+      status: file(() => procStatus(live(p))),
       comm: file(() => p.comm),
       cmdline: file(() => p.cmd.replace(/ /g, "\u0000")),
+      wchan: file(() => {
+        const w = wchanOf(live(p));
+        return w === "-" ? "0" : w;
+      }),
     });
   }
   return children;

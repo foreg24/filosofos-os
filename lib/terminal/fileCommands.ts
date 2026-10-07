@@ -1,4 +1,4 @@
-/** ls, cd, pwd, cat, echo sobre el sistema de archivos ficticio. */
+/** ls, cd, pwd, cat, echo sobre el sistema de archivos. */
 import type { OutputLine } from "@/types/terminal";
 import { splitFlags } from "./commandParser";
 import { HOME, debianSystem as S } from "./debianSystem";
@@ -94,13 +94,14 @@ const cd: CommandHandler = (args, ctx) => {
 
 const cat: CommandHandler = (args, ctx) => {
   const { operands } = splitFlags(args);
-  if (!operands.length) return out(line("cat: reading from standard input is not available in this emulation", "muted"));
+  // Sin archivos, cat espera la entrada estándar hasta Ctrl+C.
+  if (!operands.length) return { kind: "stream", steps: [{ delay: 3_600_000 }] };
   const result: OutputLine[] = [];
   for (const target of operands) {
     const node = lookup(resolvePath(target, ctx.cwd));
     if (!node) result.push(line(`cat: ${target}: No such file or directory`, "error"));
     else if (node.type === "dir") result.push(line(`cat: ${target}: ${node.restricted ? "Permission denied" : "Is a directory"}`, "error"));
-    else if (node.binary) result.push(line(`(${target}: binary file, not displayed in this emulation)`, "muted"));
+    else if (node.binary) result.push(...lines(target.endsWith(".pdf") ? "%PDF-1.7\n%����\n1 0 obj" : "\u007fELF\u0002\u0001\u0001\u0003>\u0001\u0010@8\r@\u001d\u001c\u0006\u0004@@@\u0018\u0003\u0018\u0003\b\u0003\u0004\u0018\u0003"));
     else result.push(...lines(node.content()));
   }
   return { kind: "output", lines: result };

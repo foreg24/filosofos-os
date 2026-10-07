@@ -21,11 +21,13 @@ import { viewProcesses } from "./processes/processView";
 import { type CommandContext, type CommandHandler, line, lines, out, outText } from "./terminalTypes";
 import { listDir, lookup } from "./virtualFs";
 
-/** top y htop leen la misma tabla que ps (se cuentan a sí mismos, como los reales). */
-const snapshot = (ctx: CommandContext) => ({
-  procs: viewProcesses({ tty: ctx.tty, transients: ctx.transients, simRunning: ctx.sim.isPlaying() }),
-  self: ctx.transients[0]?.pid ?? 0,
-});
+/** top y htop leen la misma tabla que ps (se cuentan a sí mismos, como los reales). `top -p a,b,…` filtra. */
+const snapshot = (ctx: CommandContext, args: string[] = []) => {
+  const procs = viewProcesses({ tty: ctx.tty, transients: ctx.transients });
+  const at = args.indexOf("-p");
+  const pids = at >= 0 ? (args[at + 1] ?? "").split(",").map(Number) : null;
+  return { procs: pids ? procs.filter((p) => pids.includes(p.pid)) : procs, self: ctx.transients[0]?.pid ?? 0 };
+};
 
 const invalidOption = (cmd: string, opt: string) =>
   out(line(`${cmd}: invalid option -- '${opt}'`, "error"), line(`Try '${cmd} --help' for more information.`));
@@ -71,7 +73,7 @@ const freeCmd: CommandHandler = (args) => {
 
 const strace: CommandHandler = (args, ctx) => {
   if (!args.length) return out(line("strace: must have PROG [ARGS] or -p PID", "error"), line("Try 'strace -h' for more information."));
-  if (args[0] !== "ls") return out(line(`This emulation can only trace 'ls'. Try: strace ls`, "muted"));
+  if (args[0] !== "ls") return out(line(`strace: ptrace(PTRACE_TRACEME, ...): Operation not permitted`, "error"), line("+++ exited with 1 +++"));
   const dir = lookup(ctx.cwd);
   const grid = dir ? lsGrid(listDir(dir), dir) : [];
   const listing = grid.map((l) => l.spans.map((s) => s.text).join("")).join("\n");
@@ -103,9 +105,9 @@ export const systemCommands: Record<string, CommandHandler> = {
   lsblk: () => outText(lsblk()),
   lspci: () => outText(lspci()),
   lsusb: () => outText(lsusb()),
-  top: (_, ctx) => out(...top({ now: new Date(), sessionStart: ctx.sessionStart, ...snapshot(ctx) })),
+  top: (args, ctx) => out(...top({ now: new Date(), sessionStart: ctx.sessionStart, ...snapshot(ctx, args) })),
   htop: (_, ctx) => out(...htop({ now: new Date(), sessionStart: ctx.sessionStart, ...snapshot(ctx) })),
-  dmesg: () => out(line("# Demonstration data: simulated kernel messages, not real logs.", "muted"), ...lines(dmesg())),
+  dmesg: () => out(...lines(dmesg())),
   strace,
   sudo: (args) =>
     args.length
