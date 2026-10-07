@@ -1,17 +1,3 @@
-#!/usr/bin/env python3
-"""
-Filósofos comensales con procesos reales de Linux.
-
-Cada filósofo es un proceso del sistema operativo (fork) y cada tenedor un semáforo del
-kernel. El deadlock no se dibuja: los cinco procesos quedan dormidos de verdad esperando un
-semáforo que nadie va a liberar, y se puede comprobar con ps, top o /proc.
-
-La consola funciona como la terminal de la página: philosophers, forks, simulation, deadlock y
-reset. Cualquier otro comando (ps, pstree, top, kill, cat /proc/...) se ejecuta en bash real.
-
-Uso:   python3 filosofos.py
-Solo requiere Python 3 (sin paquetes extra). Probado para Debian / Linux.
-"""
 import collections
 import ctypes
 import ctypes.util

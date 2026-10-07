@@ -1,9 +1,10 @@
 "use client";
 
 import { Activity, ArrowRight, Menu, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NAV_LINKS } from "@/lib/constants";
 import { useActiveSection } from "@/lib/useActiveSection";
+import { CasoRealModal } from "./CasoReal/CasoRealModal";
 import { useMotionPreference } from "./MotionProvider";
 
 export function Navbar() {
@@ -11,6 +12,8 @@ export function Navbar() {
   const { manual, toggle } = useMotionPreference();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [caso, setCaso] = useState(false);
+  const closeCaso = useCallback(() => setCaso(false), []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -61,10 +64,10 @@ export function Navbar() {
         </ul>
 
         <div className="flex items-center gap-2">
-          <a href="#simulacion" className="btn btn-ghost hidden h-9 px-4 text-[13px] sm:inline-flex">
+          <button type="button" onClick={() => setCaso(true)} className="btn btn-ghost hidden h-9 px-4 text-[13px] sm:inline-flex" aria-haspopup="dialog">
             Ver demostración
             <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
-          </a>
+          </button>
           <button
             type="button"
             onClick={toggle}
@@ -102,11 +105,20 @@ export function Navbar() {
               </li>
             ))}
           </ul>
-          <a href="#simulacion" onClick={() => setOpen(false)} className="btn btn-primary mt-6 w-full justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setCaso(true);
+            }}
+            className="btn btn-primary mt-6 w-full justify-center"
+            aria-haspopup="dialog"
+          >
             Ver demostración <ArrowRight size={15} aria-hidden />
-          </a>
+          </button>
         </div>
       )}
+      <CasoRealModal open={caso} onClose={closeCaso} />
     </header>
   );
 }
