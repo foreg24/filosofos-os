@@ -106,4 +106,10 @@ export const MODES: ModeMeta[] = [
     label: "Asimétrica",
     description: "Pares: izquierdo → derecho. Impares: derecho → izquierdo.",
   },
+  {
+    id: "monitor",
+    index: "04",
+    label: "Dos o ninguno",
+    description: "Un monitor entrega ambos tenedores a la vez; quien espera no retiene nada.",
+  },
 ];

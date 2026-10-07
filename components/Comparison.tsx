@@ -9,10 +9,11 @@ export function Comparison() {
     <section id="comparacion" aria-labelledby="comparacion-title" className="hairline-t relative bg-bg-1/60">
       <div className="shell grid-editorial gap-y-14 py-28 md:py-36 lg:py-40">
         <div className="col-span-12 lg:col-span-6">
-          <SectionHeader index="10" eyebrow="Comparación" id="comparacion-title" title="Tres caminos hacia el mismo objetivo." />
+          <SectionHeader index="10" eyebrow="Comparación" id="comparacion-title" title="Cuatro caminos hacia el mismo objetivo." />
         </div>
         <p className="body col-span-12 self-end lg:col-span-4 lg:col-start-9">
-          Las tres impiden la espera circular. Difieren en dónde colocan la restricción y en lo que cuesta sostenerla.
+          Las tres primeras impiden la espera circular; la cuarta, la retención y espera. Difieren en dónde colocan la
+          restricción y en lo que cuesta sostenerla.
         </p>
 
         <Reveal delay={0.1} className="col-span-12">

@@ -22,6 +22,29 @@ Para desarrollo: `npm run dev`. Para abrirla desde otros dispositivos de la red:
 
 Escribe `help` para ver los comandos y `lab` para la guía del laboratorio de procesos.
 
+## Validación en Debian (procesos reales)
+
+[`validacion/filosofos.py`](validacion/filosofos.py) repite la simulación con procesos reales de Linux:
+cada filósofo es un proceso hijo (`fork`) y cada tenedor un semáforo del kernel. Solo necesita Python 3.
+
+```bash
+python3 validacion/filosofos.py
+```
+
+Abre una consola tipo bash con los mismos comandos de la página (`philosophers`, `forks`,
+`simulation`, `deadlock`, `reset`, más `watch` y `log`). Cualquier otro comando se ejecuta en bash
+real, así que el bloqueo se puede comprobar con el sistema:
+
+```bash
+deadlock                                     # provoca el deadlock con 5 procesos reales
+ps -o pid,stat,wchan:22,comm -p $FILOSOFOS   # los 5 procesos dormidos (S) en el kernel
+pstree -p $PPID                              # la consola y sus 5 hijos filosofo-P0 … P4
+reset
+simulation mode monitor                      # normal, deadlock, ordered, limited, asymmetric, monitor
+simulation start
+watch
+```
+
 ## Desplegar en Cloudflare Pages
 
 `npm run build` genera un sitio 100 % estático en la carpeta `out/` (incluye `_headers` con las

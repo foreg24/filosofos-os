@@ -166,6 +166,27 @@ export const SOLUTIONS: SolutionContent[] = [
     ],
     orderNote: "Impares: derecho → izquierdo",
   },
+  {
+    index: "04",
+    mode: "monitor",
+    title: "Dos tenedores o ninguno",
+    idea: "Tomar ambos recursos en una sola operación atómica, o no tomar ninguno.",
+    body: "Un monitor guarda el estado de cada filósofo. Solo pasa a comer si ninguno de sus dos vecinos está comiendo, y en ese caso toma los dos tenedores a la vez. Si no puede, espera con las manos vacías hasta que un vecino termine y le avise. Nadie retiene un tenedor mientras espera el otro, así que la cadena no puede formarse. Su riesgo es otro: un filósofo cuyos vecinos se turnan para comer podría esperar indefinidamente (inanición).",
+    breaks: "Retención y espera",
+    code: [
+      "monitor Mesa {",
+      "  estado[5] = PENSANDO",
+      "  tomar(i):  estado[i] = HAMBRIENTO",
+      "             probar(i)",
+      "             if (estado[i] != COMIENDO) puede[i].wait()",
+      "  soltar(i): estado[i] = PENSANDO",
+      "             probar(izq(i)); probar(der(i))",
+      "  probar(i): if (estado[i] == HAMBRIENTO && vecinos sin comer)",
+      "               estado[i] = COMIENDO; puede[i].signal()",
+      "}",
+    ],
+    orderNote: "Ambos a la vez",
+  },
 ];
 
 export const COMPARISON = [
@@ -186,6 +207,12 @@ export const COMPARISON = [
     idea: "Pares e impares solicitan los tenedores en orden inverso.",
     avoids: "Espera circular, al romper la simetría del protocolo",
     complexity: "Baja. La regla depende del identificador de cada proceso.",
+  },
+  {
+    strategy: "Dos o ninguno",
+    idea: "Un monitor entrega los dos tenedores a la vez, solo si ambos vecinos no están comiendo.",
+    avoids: "Retención y espera: quien espera no retiene nada",
+    complexity: "Media. Requiere un monitor con estado por proceso y puede causar inanición.",
   },
 ];
 

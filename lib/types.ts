@@ -33,7 +33,8 @@ export type SimulationMode =
   | "deadlock"
   | "ordered"
   | "limited"
-  | "asymmetric";
+  | "asymmetric"
+  | "monitor";
 
 export type EventKind = "info" | "acquire" | "wait" | "release" | "alert" | "ok";
 

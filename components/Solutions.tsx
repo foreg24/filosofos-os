@@ -10,9 +10,9 @@ export function Solutions() {
           <div className="col-span-12 lg:col-span-6">
             <SectionHeader index="09" eyebrow="Soluciones" id="soluciones-title" title="Romper el ciclo.">
               <p>
-                Si las cuatro condiciones son necesarias, basta con impedir una. Las tres estrategias atacan la espera
-                circular, cada una desde un lugar distinto. Las tres parten del mismo escenario: los cinco tienen
-                hambre en el mismo instante.
+                Si las cuatro condiciones son necesarias, basta con impedir una. Las tres primeras estrategias atacan
+                la espera circular; la cuarta ataca la retención y espera. Todas parten del mismo escenario: los
+                cinco tienen hambre en el mismo instante.
               </p>
             </SectionHeader>
           </div>

@@ -69,7 +69,7 @@ export function acquisitionOrder(p: Philosopher, mode: SimulationMode): [number,
 }
 
 export const isSolutionMode = (mode: SimulationMode) =>
-  mode === "ordered" || mode === "limited" || mode === "asymmetric";
+  mode === "ordered" || mode === "limited" || mode === "asymmetric" || mode === "monitor";
 
 /** En "deadlock" y en las soluciones todos despiertan en el mismo tick: el peor entrelazado. */
 const synchronizedStart = (mode: SimulationMode) => mode !== "normal";
@@ -139,6 +139,26 @@ export function step(state: SimulationState): SimulationState {
         p.state = "waiting";
         p.waitingFor = null;
         log("wait", `P${p.id} espera turno · sala llena`);
+      }
+      return;
+    }
+
+    // Monitor: los dos tenedores en una sola operación atómica, o ninguno. Quien espera no retiene nada.
+    if (mode === "monitor") {
+      const left = forks[p.leftFork];
+      const right = forks[p.rightFork];
+      if (left.heldBy === null && right.heldBy === null) {
+        left.heldBy = p.id;
+        right.heldBy = p.id;
+        p.state = "eating";
+        p.waitingFor = null;
+        p.timer = rng.int(...EAT_RANGE);
+        log("acquire", `P${p.id} toma F${p.leftFork} y F${p.rightFork} a la vez · come`);
+      } else if (p.state !== "waiting") {
+        const busy = left.heldBy !== null ? left.heldBy : right.heldBy;
+        p.state = "waiting";
+        p.waitingFor = null;
+        log("wait", `P${p.id} espera sin tomar nada · P${busy} está comiendo`);
       }
       return;
     }

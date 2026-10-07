@@ -14,6 +14,7 @@ const MODE_INFO: Record<SimulationMode, string> = {
   ordered: "total order of resources",
   limited: "N-1 semaphore",
   asymmetric: "asymmetric acquisition",
+  monitor: "both forks or none (monitor)",
 };
 const MODE_IDS = MODES.map((m) => m.id);
 

@@ -18,7 +18,7 @@ function OrderTable({ content, sim }: { content: SolutionContent; sim: ReturnTyp
   return (
     <div>
       <p className="label flex justify-between text-ink-3">
-        <span>Orden de adquisición</span>
+        <span>{content.mode === "monitor" ? "Adquisición atómica" : "Orden de adquisición"}</span>
         {content.mode === "limited" && (
           <span className="tabular-nums text-ink-2">
             sala {SEATS - state.seats}/{SEATS}
@@ -27,13 +27,14 @@ function OrderTable({ content, sim }: { content: SolutionContent; sim: ReturnTyp
       </p>
       <ul className="mt-3 grid grid-cols-5 gap-2 font-mono text-[12px]">
         {state.philosophers.map((p) => {
+          const atomic = content.mode === "monitor";
           const [a, b] = acquisitionOrder(p, content.mode);
-          const differs = a !== p.leftFork;
+          const differs = atomic || a !== p.leftFork;
           return (
             <li key={p.id} className={`hairline flex flex-col items-center gap-1 py-2.5 ${differs ? "border-blue-2/50" : ""}`}>
               <span className="text-ink">P{p.id}</span>
               <span className={differs ? "text-blue-2" : "text-ink-3"}>
-                F{a}→F{b}
+                {atomic ? `F${p.leftFork}+F${p.rightFork}` : `F${a}→F${b}`}
               </span>
             </li>
           );
