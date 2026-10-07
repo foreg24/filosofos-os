@@ -2,21 +2,7 @@
  * Código de validacion/filosofos.py tal cual (lo que muestran `cat` y `less` en ~/validacion).
  * Si cambia el script, regenerar este archivo con el mismo contenido.
  */
-export const FILOSOFOS_SOURCE = `#!/usr/bin/env python3
-"""
-Filósofos comensales con procesos reales de Linux.
-
-Cada filósofo es un proceso del sistema operativo (fork) y cada tenedor un semáforo del
-kernel. El deadlock no se dibuja: los cinco procesos quedan dormidos de verdad esperando un
-semáforo que nadie va a liberar, y se puede comprobar con ps, top o /proc.
-
-La consola funciona como la terminal de la página: philosophers, forks, simulation, deadlock y
-reset. Cualquier otro comando (ps, pstree, top, kill, cat /proc/...) se ejecuta en bash real.
-
-Uso:   python3 filosofos.py
-Solo requiere Python 3 (sin paquetes extra). Probado para Debian / Linux.
-"""
-import collections
+export const FILOSOFOS_SOURCE = `import collections
 import ctypes
 import ctypes.util
 import getpass
