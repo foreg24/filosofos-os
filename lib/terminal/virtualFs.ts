@@ -4,6 +4,7 @@
  */
 import { interrupts, osRelease } from "./debianOutputs";
 import { HOME, debianSystem as S } from "./debianSystem";
+import { FILOSOFOS_SOURCE } from "./filosofosSource";
 import type { Proc } from "./processes/machine";
 import { procStatus } from "./processes/procStatus";
 import { allProcesses, wchanOf } from "./processes/processView";
@@ -52,8 +53,8 @@ Condiciones de Coffman (deben cumplirse las cuatro):
   3. No expropiación
   4. Espera circular
 
-Estrategias: orden total, limitar concurrencia (N-1), asimétrica.
-Probar en esta terminal: philosophers, forks, deadlock, reset.`;
+Estrategias: orden total, limitar concurrencia (N-1), asimétrica, dos o ninguno (monitor).
+Validación: python3 validacion/filosofos.py → deadlock, philosophers, forks, reset.`;
 
 const ZOMBIE_SOURCE = `/* Laboratorio de procesos: provocar un proceso zombi.
  * El hijo termina enseguida; el padre no llama a wait() durante 60 s,
@@ -125,6 +126,7 @@ const ROOT: VNode = dir({
         "notas_exposicion.txt": file(() => NOTES),
       }),
       Downloads: dir({ "guia_laboratorio_SO.pdf": file(() => "", { binary: true, size: 1284512 }) }),
+      validacion: dir({ "filosofos.py": file(() => FILOSOFOS_SOURCE, { exec: true }) }),
       laboratorio: dir({
         "zombie.c": file(() => ZOMBIE_SOURCE),
         zombie: file(() => "", { binary: true, size: 16144, exec: true }),

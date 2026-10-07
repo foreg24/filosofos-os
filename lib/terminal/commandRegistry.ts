@@ -7,7 +7,7 @@ import { type Env, type ParsedLine, parse } from "./commandParser";
 import { HOME, debianSystem as S } from "./debianSystem";
 import { fileCommands } from "./fileCommands";
 import { LAB_SECTIONS, WINDOWS_EQUIVALENTS, lab } from "./labGuide";
-import { philosopherCommands } from "./philosopherCommands";
+import { isScriptOpen, philosopherCommands, python3, scriptHelp } from "./philosopherCommands";
 import { FILTERS, filterCommandLine } from "./pipeline";
 import { processCommands, runZombie } from "./processCommands";
 import { machine } from "./processes/machine";
@@ -46,8 +46,10 @@ const HELP_GROUPS: [string, string[]][] = [
   ],
 ];
 
-const help: CommandHandler = () =>
-  out(
+const help: CommandHandler = (_, ctx) =>
+  isScriptOpen(ctx.tty)
+    ? out(...scriptHelp())
+    : out(
     ...HELP_GROUPS.flatMap(([title, cmds], i) => [...(i ? [line("")] : []), line(`${title}:`, "strong"), line(""), ...cmds.map((c) => line(`  ${c}`))]),
     line(""),
     line("Pipes: | grep · head · tail · sort · uniq · wc · awk '{print $N}'   Background: &", "muted"),
@@ -56,8 +58,40 @@ const help: CommandHandler = () =>
 
 const history: CommandHandler = (_, ctx) => out(...ctx.history.map((cmd, i) => line(`${String(i + 1).padStart(5)}  ${cmd}`)));
 
+/**
+ * head, tail, grep, wc, sort… fuera de una tubería leen el archivo que se les pasa al final
+ * (`head -n 5 validacion/filosofos.py`); sin archivo esperan la entrada estándar hasta Ctrl+C.
+ */
+function fileFilter(name: string): CommandHandler {
+  const filter = FILTERS[name];
+  const needsArgument = name === "grep" || name === "awk";
+  return (args, ctx) => {
+    const last = args[args.length - 1];
+    const operands = args.filter((a) => !a.startsWith("-"));
+    const fileGiven = last !== undefined && !last.startsWith("-") && (!needsArgument || operands.length >= 2) && !/^\d+$/.test(last);
+    if (!fileGiven) {
+      if (needsArgument && !operands.length) {
+        const r = filter([], args);
+        return "error" in r ? out(...r.error.split("\n").map((t) => line(t, "error"))) : out();
+      }
+      return { kind: "stream", steps: [{ delay: 3_600_000 }] };
+    }
+    const node = lookup(resolvePath(last, ctx.cwd));
+    if (!node) return out(line(`${name}: ${last}: No such file or directory`, "error"));
+    if (node.type === "dir") return out(line(`${name}: ${last}: Is a directory`, "error"));
+    const text = node.content();
+    const r = filter((text.endsWith("\n") ? text.slice(0, -1) : text).split("\n"), args.slice(0, -1));
+    if ("error" in r) return out(...r.error.split("\n").map((t) => line(t, "error")));
+    // wc nombra el archivo después de los conteos: "726 validacion/filosofos.py".
+    return { kind: "output", lines: name === "wc" ? r.lines.map((l) => line(`${l.spans.map((s) => s.text).join("")} ${last}`)) : r.lines };
+  };
+}
+
+const FILE_FILTERS = Object.fromEntries(["grep", "head", "tail", "sort", "uniq", "wc", "awk", "less", "more"].map((n) => [n, fileFilter(n)]));
+
 const REGISTRY = new Map<string, CommandHandler>(
   Object.entries({
+    ...FILE_FILTERS,
     ...systemCommands,
     ...fileCommands,
     ...philosopherCommands,
@@ -108,6 +142,8 @@ function runPath(name: string, ctx: CommandContext, raw: string): CommandResult 
   if (!node) return out(line(`bash: ${name}: No such file or directory`, "error"));
   if (node.type === "dir") return out(line(`bash: ${name}: Is a directory`, "error"));
   if (!node.exec) return out(line(`bash: ${name}: Permission denied`, "error"));
+  // filosofos.py tiene la línea #!/usr/bin/env python3: se ejecuta como python3 filosofos.py.
+  if (name.endsWith("filosofos.py")) return python3([name], ctx, { raw, name: "python3", args: [name] });
   return runZombie(ctx, raw);
 }
 

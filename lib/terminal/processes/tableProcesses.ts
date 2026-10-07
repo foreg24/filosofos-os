@@ -10,9 +10,17 @@ import type { Proc } from "./machine";
 
 export const MESA_PID = 2048;
 export const PHILOSOPHER_PIDS = Array.from({ length: PHILOSOPHER_COUNT }, (_, i) => MESA_PID + 1 + i);
-/** bash de pts/1, la terminal junto al panel de la simulación. */
-const PARENT_SHELL = 1788;
-const COMMAND = "python3 filosofos.py";
+/** Por defecto, el bash de pts/1 (la terminal junto al panel de la simulación). */
+const DEFAULT_HOST = { shell: 1788, tty: "pts/1", command: "python3 filosofos.py" };
+/** Terminal donde está abierto filosofos.py (su proceso vive aunque los filósofos no hayan arrancado). */
+let host: typeof DEFAULT_HOST | null = null;
+
+export const isScriptHosted = () => host !== null;
+
+export function setScriptHost(next: typeof DEFAULT_HOST | null) {
+  host = next;
+  scriptStartedAt = next ? Date.now() : null;
+}
 
 interface Source {
   state: () => SimulationState;
@@ -21,6 +29,7 @@ interface Source {
 
 let source: Source | null = null;
 let startedAt: number | null = null;
+let scriptStartedAt: number | null = null;
 
 /** La sesión de la terminal conecta el motor compartido de la página. */
 export function registerSimulation(s: Source) {
@@ -50,12 +59,15 @@ export function philosopherKernel(id: number): { state: string; wchan: string } 
 
 /** Los seis procesos (vacío si la simulación no ha arrancado). `bootAt`: arranque de la máquina. */
 export function tableProcesses(bootAt: number): Proc[] {
-  if (!tableActive()) return [];
+  const active = tableActive();
+  if (!active && !host) return [];
+  const { shell, tty, command } = host ?? DEFAULT_HOST;
+  scriptStartedAt ??= Date.now();
   const started = (startedAt ?? Date.now()) - bootAt;
   const base = {
     user: S.username,
-    cmd: COMMAND,
-    tty: "pts/1",
+    cmd: command,
+    tty,
     flags: "",
     threads: 1,
     tids: [],
@@ -66,8 +78,21 @@ export function tableProcesses(bootAt: number): Proc[] {
     kind: "program" as const,
     reaps: true,
   };
+  const mesa: Proc = {
+    ...base,
+    started: scriptStartedAt - bootAt,
+    pid: MESA_PID,
+    ppid: shell,
+    comm: "mesa-filosofos",
+    state: "S",
+    wchan: "wait_woken",
+    vsz: 36412,
+    rss: 17280,
+    cpu: 0,
+  };
+  if (!active) return [mesa];
   return [
-    { ...base, pid: MESA_PID, ppid: PARENT_SHELL, comm: "mesa-filosofos", state: "S", wchan: "wait_woken", vsz: 36412, rss: 17280, cpu: 0 },
+    mesa,
     ...PHILOSOPHER_PIDS.map((pid, i) => {
       const { state, wchan } = philosopherKernel(i);
       return { ...base, pid, ppid: MESA_PID, comm: `filosofo-P${i}`, state, wchan, vsz: 36412, rss: 12928, cpu: 0 };

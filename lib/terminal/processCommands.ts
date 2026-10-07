@@ -8,7 +8,8 @@ import { psAux, psColumnNames, psCustom, psDefault, psFull } from "./processes/p
 import { pstree } from "./processes/pstree";
 import { type ProcView, viewProcesses } from "./processes/processView";
 import { SIGNAL_MESSAGES, type Signal, parseSignal, signalTable as signalList } from "./processes/signals";
-import { isTablePid, tableActive } from "./processes/tableProcesses";
+import { closeScript, isScriptOpen, killScript } from "./philosopherCommands";
+import { MESA_PID, isScriptHosted, isTablePid, tableActive } from "./processes/tableProcesses";
 import { bannerLines } from "./terminalState";
 import { type CommandContext, type CommandHandler, line, lines, out } from "./terminalTypes";
 
@@ -117,6 +118,12 @@ const kill: CommandHandler = (args, ctx) => {
       result.push(line(`bash: kill: ${target}: arguments must be process or job IDs`, "error"));
       continue;
     }
+    if (pid === MESA_PID && isScriptHosted() && FATAL_SIGNALS.includes(signal)) {
+      // Muere filosofos.py: con él terminan sus cinco hijos.
+      killScript();
+      ctx.sim.reset(ctx.sim.getState().mode);
+      continue;
+    }
     if (isTablePid(pid) && tableActive()) {
       signalTable(signal, ctx);
       continue;
@@ -209,7 +216,12 @@ const bash: CommandHandler = (args, ctx) => {
   return out();
 };
 
-const exitCmd: CommandHandler = (_, ctx) => {
+const exitCmd: CommandHandler = (_, ctx, parsed) => {
+  // Dentro de filosofos.py, exit (o Ctrl+D) cierra el script y vuelve a bash.
+  if (isScriptOpen(ctx.tty)) {
+    closeScript(ctx);
+    return parsed.name === "logout" ? out(line("logout")) : out();
+  }
   const m = machine();
   const result = m.exitShell(ctx.tty, m.consumeExitWarning(ctx.shell));
   if (result === "stopped-jobs") return out(line("There are stopped jobs."));

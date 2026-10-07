@@ -7,7 +7,9 @@ import { MODES, TICK_MS } from "@/lib/constants";
 import { advance, createSimulation, formatCycle, heldForks, totalMeals, waitForGraph } from "@/lib/simulation";
 import type { PhilosopherState, SimulationEvent, SimulationMode, SimulationState } from "@/lib/types";
 import type { OutputLine, StreamStep, Tone } from "@/types/terminal";
-import { PHILOSOPHER_PIDS, philosopherKernel, tableActive } from "./processes/tableProcesses";
+import { debianSystem as S, prettyName } from "./debianSystem";
+import { MESA_PID, PHILOSOPHER_PIDS, philosopherKernel, setScriptHost, tableActive } from "./processes/tableProcesses";
+import { lookup, resolvePath } from "./virtualFs";
 import { type CommandContext, type CommandHandler, type SimulationBridge, line, out, spans } from "./terminalTypes";
 
 const MODE_INFO: Record<SimulationMode, string> = {
@@ -247,7 +249,109 @@ const log: CommandHandler = (args, ctx) => {
   return events.length ? out(...events.map(eventLine)) : out(line("Sin eventos todavía."));
 };
 
+/* ------------------------------------------------- python3 filosofos.py -- */
+
+const PYTHON_VERSION = "3.13.5";
+/** Terminales con filosofos.py abierto: ahí `help` y `exit` son los del script. */
+const scriptOpen = new Set<string>();
+
+export const isScriptOpen = (tty: string) => scriptOpen.has(tty);
+
+/** `exit` dentro del script: termina los procesos y vuelve a bash (sin mensaje, como el script). */
+export function closeScript(ctx: CommandContext) {
+  scriptOpen.delete(ctx.tty);
+  if (!scriptOpen.size) setScriptHost(null);
+  ctx.sim.reset(ctx.sim.getState().mode);
+}
+
+/** El proceso del script murió (kill a mesa-filosofos): todas las terminales vuelven a bash. */
+export function killScript() {
+  scriptOpen.clear();
+  setScriptHost(null);
+}
+
+export function scriptHelp(): OutputLine[] {
+  const groups: [string, [string, string][]][] = [
+    [
+      "Dining Philosophers (procesos)",
+      [
+        ["philosophers", "los 5 procesos: PID, estado, tenedores y estado en el kernel"],
+        ["forks", "los 5 tenedores (semáforos): libre, retenido o bloqueado"],
+        ["simulation", "estado del sistema"],
+        ["simulation mode <m>", `modos: ${MODE_IDS.join(", ")}`],
+        ["simulation start", "lanza los 5 procesos con el modo actual"],
+        ["simulation pause | resume", "SIGSTOP / SIGCONT a los 5 procesos"],
+        ["simulation speed <x>", "0.5, 1 o 2"],
+        ["deadlock", "provoca el deadlock en vivo y muestra la evidencia del kernel"],
+        ["watch", "tablero en vivo (Ctrl+C para salir)"],
+        ["log [n]", "últimos eventos"],
+        ["reset", "termina los procesos y deja la mesa limpia"],
+      ],
+    ],
+    [
+      "Para comprobarlo con el sistema",
+      [
+        ["ps -o pid,stat,wchan:22,comm -p $FILOSOFOS", "estado de los 5 procesos en el kernel"],
+        ["pstree -p $MESA", "el árbol: esta consola y sus 5 hijos"],
+        ["top -p $FILOSOFOS", "los 5 procesos en top"],
+        ["cat /proc/<PID>/status", "el PCB de un filósofo"],
+        ["kill -9 <PID>", "matar a un filósofo"],
+      ],
+    ],
+  ];
+  return [
+    ...groups.flatMap(([title, cmds], i) => [
+      ...(i ? [line("")] : []),
+      line(`${title}:`, "strong"),
+      line(""),
+      ...cmds.map(([c, d]) => spans({ text: `  ${pad(c, 44)}` }, { text: d, tone: "muted" })),
+    ]),
+    line(""),
+    line("Cualquier otro comando se ejecuta en bash (ls, ps, top, uname -a, neofetch...).", "muted"),
+    line("exit o Ctrl+D para salir (termina los procesos).", "muted"),
+  ];
+}
+
+export const python3: CommandHandler = (args, ctx) => {
+  const [first] = args;
+  if (first === "--version" || first === "-V") return out(line(`Python ${PYTHON_VERSION}`));
+  if (!first) {
+    // Intérprete interactivo: espera hasta Ctrl+C.
+    return {
+      kind: "stream",
+      steps: [
+        {
+          delay: 0,
+          lines: [
+            line(`Python ${PYTHON_VERSION} (main, Jun 25 2025, 18:55:22) [GCC 14.2.0] on linux`),
+            line('Type "help", "copyright", "credits" or "license" for more information.'),
+            line(">>> "),
+          ],
+        },
+        { delay: 3_600_000 },
+      ],
+    };
+  }
+  const path = resolvePath(first, ctx.cwd);
+  const node = lookup(path);
+  if (!node) return out(line(`python3: can't open file '${path}': [Errno 2] No such file or directory`, "error"));
+  if (node.type === "dir") return out(line(`python3: can't find '__main__' module in '${path}'`, "error"));
+  if (!path.endsWith("/filosofos.py")) return out();
+
+  scriptOpen.add(ctx.tty);
+  setScriptHost({ shell: ctx.shell, tty: ctx.tty, command: `python3 ${first}` });
+  return out(
+    line(`Linux ${S.hostname} ${S.kernel} ${S.kernelBuild} ${S.machine}`),
+    line(prettyName),
+    line(""),
+    line("Filósofos comensales · procesos del sistema operativo", "strong"),
+    line(`Cada filósofo es un proceso hijo de esta consola (PID ${MESA_PID}) y cada tenedor un semáforo del kernel.`, "muted"),
+    line("Escribe 'help' para ver los comandos. Lo demás (ps, top, pstree, kill...) se ejecuta en bash.", "muted"),
+  );
+};
+
 export const philosopherCommands: Record<string, CommandHandler> = {
+  python3,
   philosophers,
   forks,
   simulation,
